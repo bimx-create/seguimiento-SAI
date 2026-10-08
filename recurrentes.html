@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Seguimiento de Pacientes Recurrentes</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="theme.js"></script>
+  <style>
+    .recurrentes-container {
+      padding: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    /* ESFERAS */
+    .esferas-grid {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      flex-wrap: wrap;
+      padding: 20px 0;
+    }
+    .esfera {
+      width: 170px;
+      height: 170px;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: white;
+      text-decoration: none;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      text-align: center;
+      padding: 16px;
+      border: none;
+    }
+    .esfera:hover {
+      transform: translateY(-8px) scale(1.05);
+      box-shadow: 0 14px 32px rgba(0,0,0,0.25);
+    }
+    .esfera-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .esfera-count {
+      font-size: 0.95rem;
+      opacity: 0.95;
+      background: rgba(0,0,0,0.25);
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+    
+    .esfera.Narvarte { background: linear-gradient(135deg, #4ea3ff, #2563eb); }
+    .esfera.Toluca { background: linear-gradient(135deg, #c084fc, #7c3aed); }
+    .esfera.Morelia { background: linear-gradient(135deg, #34d399, #059669); }
+    .esfera.Tijuana { background: linear-gradient(135deg, #fbbf24, #d97706); }
+    .esfera.Santa-Fe { background: linear-gradient(135deg, #f43f5e, #be123c); }
+    
+    /* VISTA DETALLE */
+    .detalle-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-color, #e2e8f0);
+    }
+    [data-theme="dark"] .detalle-header { border-color: #334155; }
+    
+    .filtros-detalle {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 24px;
+      background: var(--bg-panel, #ffffff);
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color, #e2e8f0);
+    }
+    [data-theme="dark"] .filtros-detalle {
+      background: #1e293b;
+      border-color: #334155;
+    }
+    .filtros-detalle .field { margin-bottom: 0; }
+    .filtros-detalle .grow-2 { flex: 2; min-width: 200px; }
+    
+    /* CARDS */
+    .patient-card {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 20px;
+      border: 1px solid var(--border-color, #e2e8f0);
+      border-radius: 8px;
+      margin-bottom: 16px;
+      background: var(--bg-main, #f8fafc);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    [data-theme="dark"] .patient-card {
+      background: #0f172a;
+      border-color: #334155;
+    }
+    .patient-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .patient-name {
+      font-weight: 700;
+      font-size: 1.15rem;
+      margin: 0 0 6px 0;
+      color: var(--text-color, #0f172a);
+    }
+    [data-theme="dark"] .patient-name { color: #f8fafc; }
+    
+    .patient-stats {
+      font-size: 0.9rem;
+      color: var(--muted, #64748b);
+    }
+    .seguimiento-box {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .seguimiento-box textarea {
+      width: 100%;
+      min-height: 80px;
+      padding: 10px;
+      border: 1px solid var(--border-color, #cbd5e1);
+      border-radius: 6px;
+      resize: vertical;
+      font-family: inherit;
+      font-size: 0.95rem;
+    }
+    [data-theme="dark"] .seguimiento-box textarea {
+      background: #1e293b;
+      border-color: #475569;
+      color: #f8fafc;
+    }
+    .seguimiento-box button {
+      align-self: flex-end;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: #3b82f6;
+      color: white;
+    }
+    .badge-alerta {
+      background: #f43f5e; /* Rojo para pacientes que llevan mucho tiempo sin venir */
+    }
+  </style>
+</head>
+<body>
+
+<div id="appContainer" class="app-shell">
+  <header class="hero">
+    <div>
+      <div class="eyebrow">Herramienta de Seguimiento</div>
+      <h1>Pacientes Recurrentes</h1>
+      <p>Entra a la esfera de tu sede para revisar a los pacientes y hace cuánto tiempo no vienen.</p>
+    </div>
+    <div class="hero-actions">
+      <button type="button" class="theme-toggle" data-theme-toggle>☀️ Claro</button>
+      <a href="seguimiento-dashboard.html" class="btn btn-primary" style="text-decoration: none;">Ver Analíticas</a>
+      <a href="index.html" class="btn btn-ghost">Volver al Concentrado</a>
+    </div>
+  </header>
+
+  <main class="recurrentes-container">
+    <div id="loadingIndicator" style="text-align: center; padding: 40px; color: var(--muted, #64748b); font-size: 1.1rem;">
+      <span style="display:inline-block; animation: pulse 2s infinite;">Cargando registros desde SAI...</span>
+    </div>
+    
+    <!-- VISTA 1: ESFERAS -->
+    <div id="vistaEsferas" class="hidden">
+      <h2 style="text-align:center; margin-bottom: 10px; color: var(--text-color);">Selecciona una Sede</h2>
+      <div class="esferas-grid" id="esferasGrid">
+        <!-- Las esferas se inyectarán aquí por JS -->
+      </div>
+    </div>
+
+    <!-- VISTA 2: DETALLE DE SEDE -->
+    <div id="vistaDetalle" class="hidden">
+      <div class="detalle-header">
+        <button class="btn btn-ghost" onclick="volverEsferas()">← Volver a esferas</button>
+        <h2 id="detalleSedeTitulo" style="margin:0;">Sede</h2>
+      </div>
+      
+      <div class="filtros-detalle">
+        <div class="field">
+          <label>Tiempo sin venir</label>
+          <select id="filtroTiempo" onchange="renderListaPacientes()">
+            <option value="todos">Todos los pacientes</option>
+            <option value="30">Más de 1 mes sin venir (30+ días)</option>
+            <option value="60">Más de 2 meses sin venir (60+ días)</option>
+            <option value="90">Más de 3 meses sin venir (90+ días)</option>
+            <option value="180">Más de 6 meses sin venir (180+ días)</option>
+          </select>
+        </div>
+        <div class="field grow-2">
+          <label>Buscar paciente</label>
+          <input type="text" id="filtroNombre" placeholder="Por nombre o diagnóstico..." oninput="renderListaPacientes()" />
+        </div>
+      </div>
+
+      <div id="listaPacientesContainer">
+        <!-- Tarjetas de pacientes -->
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="Supabaseclient.js"></script>
+
+<!-- Firebase App (Compat) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<!-- Firebase Firestore (Compat) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script src="recurrentes.js"></script>
+</body>
+</html>

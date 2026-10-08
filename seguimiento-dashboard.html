@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dashboard de Seguimientos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="theme.js"></script>
+  
+  <!-- Firebase App (Compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <!-- Firebase Firestore (Compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    .dash-container {
+      padding: 24px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    .kpi-grid-4 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+    .kpi-card {
+      background: var(--bg-panel, #ffffff);
+      border: 1px solid var(--border-color, #e2e8f0);
+      border-radius: 8px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    [data-theme="dark"] .kpi-card { background: #1e293b; border-color: #334155; }
+    
+    .kpi-card span { font-size: 0.95rem; color: var(--muted, #64748b); font-weight: 600; margin-bottom: 8px; }
+    .kpi-card strong { font-size: 2.2rem; font-weight: 700; color: var(--text-color, #0f172a); }
+    [data-theme="dark"] .kpi-card strong { color: #f8fafc; }
+    
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+    .chart-container {
+      background: var(--bg-panel, #ffffff);
+      border: 1px solid var(--border-color, #e2e8f0);
+      border-radius: 8px;
+      padding: 24px;
+      height: 350px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    [data-theme="dark"] .chart-container { background: #1e293b; border-color: #334155; }
+
+    .table-container {
+      background: var(--bg-panel, #ffffff);
+      border: 1px solid var(--border-color, #e2e8f0);
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      overflow-x: auto;
+    }
+    [data-theme="dark"] .table-container { background: #1e293b; border-color: #334155; }
+    
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color, #e2e8f0); }
+    [data-theme="dark"] th, [data-theme="dark"] td { border-color: #334155; }
+    th { font-weight: 600; color: var(--muted, #64748b); }
+  </style>
+</head>
+<body>
+
+<div class="app-shell">
+  <header class="hero">
+    <div>
+      <div class="eyebrow">Analíticas</div>
+      <h1>Dashboard de Seguimiento</h1>
+      <p>Vista general de los pacientes recurrentes y su estatus de retención basado en los seguimientos guardados.</p>
+    </div>
+    <div class="hero-actions">
+      <button type="button" class="theme-toggle" data-theme-toggle>☀️ Claro</button>
+      <a href="recurrentes.html" class="btn btn-ghost">Regresar a Esferas</a>
+    </div>
+  </header>
+
+  <main class="dash-container">
+    <div id="loadingIndicator" style="text-align: center; padding: 40px; color: var(--muted, #64748b);">
+      Generando analíticas...
+    </div>
+
+    <div id="dashboardContent" class="hidden">
+      
+      <!-- Filtros del Dashboard -->
+      <div style="margin-bottom: 24px; display: flex; align-items: center; gap: 16px; background: var(--bg-panel, #ffffff); padding: 16px; border-radius: 8px; border: 1px solid var(--border-color, #e2e8f0); box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <label for="filtroSedeDash" style="font-weight: 600; color: var(--text-color, #0f172a);">Filtrar por Sede:</label>
+        <select id="filtroSedeDash" onchange="aplicarFiltroDash()" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color, #cbd5e1); background: transparent; color: inherit; font-family: inherit; font-size: 0.95rem; min-width: 200px;">
+          <option value="Todas">Todas las sedes</option>
+          <option value="Narvarte">Narvarte</option>
+          <option value="Toluca">Toluca</option>
+          <option value="Morelia">Morelia</option>
+          <option value="Tijuana">Tijuana</option>
+          <option value="Santa Fe">Santa Fe</option>
+        </select>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid-4">
+        <div class="kpi-card">
+          <span>Total Pacientes Recurrentes</span>
+          <strong id="kpiTotal">0</strong>
+        </div>
+        <div class="kpi-card">
+          <span>Pacientes con Seguimiento</span>
+          <strong id="kpiConSeguimiento" style="color: #3b82f6;">0</strong>
+        </div>
+        <div class="kpi-card">
+          <span>Pacientes en Alerta (>60 días)</span>
+          <strong id="kpiAlerta" style="color: #f43f5e;">0</strong>
+        </div>
+        <div class="kpi-card">
+          <span>Sede con más recurrentes</span>
+          <strong id="kpiSedeLider" style="font-size: 1.8rem;">---</strong>
+        </div>
+      </div>
+
+      <!-- Gráficos -->
+      <div class="charts-grid">
+        <div class="chart-container">
+          <canvas id="chartSedes"></canvas>
+        </div>
+        <div class="chart-container">
+          <canvas id="chartRetencion"></canvas>
+        </div>
+      </div>
+
+      <!-- Tabla de últimos comentarios -->
+      <div class="table-container">
+        <h3 style="margin-top: 0; margin-bottom: 16px;">Comentarios de Seguimiento Registrados</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Paciente</th>
+              <th>Sede</th>
+              <th>Días sin venir</th>
+              <th>Comentario (Firebase)</th>
+            </tr>
+          </thead>
+          <tbody id="tablaSeguimientosBody">
+            <!-- Data -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="Supabaseclient.js"></script>
+<script src="seguimiento-dashboard.js"></script>
+</body>
+</html>
